@@ -1,8 +1,19 @@
 open CamomileLibrary.UChar
 open LTerm_key
-
+open LTerm_geom
 
 let (>>=) = Lwt.(>>=)
+
+
+let lambda =
+"     _ 
+    /   \ 
+   /     \
+          \ 
+         / \ 
+        /   \ 
+       /     \\__ 
+"
 
 let get_time () =
   let localtime = Unix.localtime (Unix.time ()) in
@@ -19,114 +30,104 @@ let log message =
   output_string oc ((get_time ()) ^ message ^ "\n");
   Out_channel.close oc
 
-(* let fire_rocket coord = *)
-  (* let ctx = LTerm_draw.context (LTerm_draw.make_matrix {rows = 1; cols = 1}) in *)
-(*   log_message "Fired"; *)
-  (* ignore (Lwt_engine.on_timer 0.3 true (fun _ -> log_message "Fired")) *)
-
-(* let fire_rocket ui = *)
-(*   let ctx = LTerm_draw.context *)
-(*       (LTerm_draw.make_matrix {rows=10; cols=10}) *)
-(*       ({rows = 10; cols = 10}) in *)
-(*   LTerm_draw.fill ctx (of_char 'h'); *)
-  (* LTerm_draw.draw_frame ctx {row1 = 10; *)
-  (*                            col1 = 10; *)
-  (*                            row2 = 10; *)
-  (*                            col2 = 10} LTerm_draw.Heavy; *)
-  (* LTerm_draw.draw_string ctx 0 0 "Hello"; *)
-  (* LTerm_draw.draw_styled ctx 10 10  *)
-  (*   (eval [B_fg LTerm_style.lyellow; S"Hello";E_fg]); *)
-(*   log_message "Finished rocket" *)
-    
-(* let rec loop ui coord = *)
-(*     LTerm_ui.wait ui >>= function *)
-(*     | LTerm_event.Key {code = LTerm_key.Char ch } *)
-(*       when ch = of_char ' ' -> *)
-(*       LTerm_ui.draw ui; *)
-(*       fire_rocket ui; *)
-(*       loop ui coord *)
-(*     | LTerm_event.Key{ code = Left } -> *)
-(*       coord := { !coord with col = !coord.col - 3 }; *)
-(*       LTerm_ui.draw ui; *)
-(*       loop ui coord *)
-(*     | LTerm_event.Key{ code = Right } -> *)
-(*       coord := { !coord with col = !coord.col + 3 }; *)
-(*       LTerm_ui.draw ui; *)
-(*       loop ui coord *)
-(*     | LTerm_event.Key {code = LTerm_key.Char ch} *)
-(*       when ch = of_char 'q' -> *)
-(*       return () *)
-(*     | LTerm_event.Key{ code = Escape } -> *)
-(*       return () *)
-(*     | ev -> *)
-(*       loop ui coord *)
-
-(* let draw ui matrix coord = *)
-(*   let size = LTerm_ui.size ui in *)
-(*   let ctx = LTerm_draw.context matrix size in *)
-(*   (\* log_message (string_of_int size.rows ^ ":" ^ string_of_int size.cols); *\) *)
-(*   LTerm_draw.clear ctx; *)
-(*   LTerm_draw.draw_frame ctx { row1 = 0; *)
-(*                               col1 = 0; *)
-(*                               row2 = size.rows; *)
-(*                               col2 = size.cols } LTerm_draw.Light; *)
-(*   (\* log_message (string_of_int coord.row ^ " " ^ string_of_int coord.col); *\) *)
-
-(* (\* original *\) *)
-(*   (\* if size.rows > 2 && size.cols > 2 *\) *)
-(*   if coord.col > 3 && *)
-(*      coord.col <= (size.cols - 3) *)
-(*   then *)
-(*     begin *)
-(*       (\* This determines where its position is *\) *)
-(*       let ctx = LTerm_draw.sub ctx { row1 = 1; *)
-(*                                      col1 = 1; *)
-(*                                      row2 = size.rows - 1; *)
-(*                                      col2 = size.cols - 1 } in *)
-(*       log_message (string_of_coord coord); *)
-(*       LTerm_draw.draw_styled ctx coord.row coord.col *)
-(*         (eval [B_fg LTerm_style.lblue; S "λ"; E_fg]) *)
-(*     end *)
-(* lwt () = *)
-(*     lwt term = Lazy.force LTerm.stdout in *)
-(*     let size_ = LTerm.size term in *)
-(*     let coord = ref { row = size_.rows - 3; col = size_.cols / 2 } in *)
-
-(*     lwt ui = LTerm_ui.create term (fun ui matrix -> *)
-(*                                    draw ui matrix !coord) in *)
-(*     try_lwt *)
-(*       loop ui coord *)
-(*     finally *)
-(*       LTerm_ui.quit ui *)
 
 class defender =
   object(self)
     inherit LTerm_widget.t "defender" as super
 
-    (* val mutable current_ctx =  *)
+    val mutable init = false
+    val mutable previous_location = None
+    
     method can_focus =
       true
 
     method draw ctx focused_widget =
-      (* Do I need to call the super classes' methods *)
-      (* super#draw ctx focused_widget; *)
-      LTerm_geom.(
-      ignore (Lazy.force LTerm.stdout >>= (fun term -> 
-          let t_size = LTerm.size term in 
-          LTerm_draw.draw_string ctx (t_size.rows - 3) (t_size.cols / 2) "λ";
-          Lwt.return ())))
+      if not init
+      then
+        begin
+          let this_size = LTerm_draw.size ctx in
+          init <- true;
+          previous_location <- Some {row = this_size.rows - 1;
+                                    col = (this_size.cols / 2)};
+          let ctx = LTerm_draw.sub ctx {row1 = this_size.rows - 1;
+                                        col1 = (this_size.cols / 2);
+                                        row2 = this_size.rows;
+                                        col2 = (this_size.cols / 2) + 1} in 
+          (* Drawing outside of your context is a no op *)
+          LTerm_draw.draw_char ctx 0 0 (of_char 'E')
+        end
+      else
+        begin
+          previous_location |> (function 
+              | Some c ->
+                let ctx = LTerm_draw.sub ctx {row1 = c.row;
+                                              col1 = c.col;
+                                              row2 = c.row + 1;
+                                              col2 = c.row } in
+                LTerm_draw.clear ctx;
+                LTerm_draw.draw_char ctx 0 0 (of_char 'B')
+                (* LTerm_draw.fill ctx (of_char 'B') *)
+              | None -> () 
+            )
+        end 
+          
+    (* LTerm_geom.( *)
+      (*   ignore (Lazy.force LTerm.stdout >>= (fun term -> *)
+      (*       let t_size = LTerm.size term in *)
+      (*       (\* log (string_of_size t_size); *\) *)
+      (*       LTerm_draw.draw_string ctx (t_size.rows - 3) (t_size.cols / 2) "λ"; *)
+      (*       Lwt.return ()))) *)
+      (* LTerm_draw.fill ctx (of_char 'a')  *)
 
+    (* TODO Refactor this to use polymorphic variants, perhaps a task for
+       Gina *)
+    method move_left =
+      previous_location |> (function
+          | Some p -> 
+            previous_location <- Some {p with col = p.col - 1}
+          | None -> ()
+        );
+        self#queue_draw
+
+    method move_right =
+      log "Called move right";
+      previous_location |> (function
+          | Some p ->
+            previous_location <- Some {p with col = p.col + 1}
+          | None -> ()
+        );
+        self#queue_draw
+
+    method fire_rocket =
+      log "Firing the rocket"
+        
     initializer
       self#on_event (function
           | LTerm_event.Key {code = Left} ->
-            log "Hit left";
+            self#move_left;
             true
           | LTerm_event.Key {code = Right} ->
-            log "Hit Right";
+            self#move_right;
+            true
+          | LTerm_event.Key
+              {code = LTerm_key.Char ch}
+            when ch = of_char ' ' ->
+            self#fire_rocket;
             true
             (* false will propogate the event downward *)
           | _ -> false)
-  end 
+  end
+
+class alien =
+  object(self)
+    inherit LTerm_widget.t "alien"
+
+    method can_focus =
+      true
+
+    method draw ctx focused_widget =
+      LTerm_draw.fill ctx (of_char 'c');
+    end
 
 let gframe_handler exit_ show_help =
   (fun event ->
@@ -146,12 +147,14 @@ let gframe_handler exit_ show_help =
 lwt () =
    let do_run, push_layer, pop_layer, exit_ = LTerm_widget.prepare_simple_run () in
    let root_box = new LTerm_widget.vbox in
-   let game_frame = new LTerm_widget.frame in
+   let game_frame = new LTerm_widget.frame in 
    let help_modal = new LTerm_widget.modal_frame in 
-   
-   (* root_box#on_event  *)
-   (* root_box#add game_frame; *)
+
+     
+   (* root_box#add (new alien); *)
    root_box#add (new defender);
+   (* List.length root_box#children |> string_of_int |> log; *)
    game_frame#set root_box;
    game_frame#on_event (gframe_handler exit_ (push_layer help_modal));
    do_run game_frame
+
