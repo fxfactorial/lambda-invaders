@@ -2,5 +2,5 @@ README.org
 *.cmo
 *.cmt
 *.cmi
-netstatml
+lambda-invaders
 _build/*

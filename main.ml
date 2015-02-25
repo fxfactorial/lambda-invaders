@@ -53,22 +53,22 @@ class defender =
                                         col1 = (this_size.cols / 2);
                                         row2 = this_size.rows;
                                         col2 = (this_size.cols / 2) + 1} in 
-          (* Drawing outside of your context is a no op *)
-          LTerm_draw.draw_char ctx 0 0 (of_char 'E')
+          (* NOTE Drawing outside of your context is a no op *)
+          LTerm_draw.draw_string ctx 0 0 "λ"
         end
       else
         begin
+          (* TODO Prevent out of bounds errors when widget goes off
+          the edge of screen *)
           previous_location |> (function 
               | Some c ->
                 let ctx = LTerm_draw.sub ctx {row1 = c.row;
                                               col1 = c.col;
                                               row2 = c.row + 1;
-                                              col2 = c.row } in
+                                              col2 = c.col + 1 } in
                 LTerm_draw.clear ctx;
-                LTerm_draw.draw_char ctx 0 0 (of_char 'B')
-                (* LTerm_draw.fill ctx (of_char 'B') *)
-              | None -> () 
-            )
+                LTerm_draw.draw_styled ctx 0 0 (LTerm_text.of_string "λ")
+              | None -> () )
         end 
           
     (* LTerm_geom.( *)
@@ -84,16 +84,15 @@ class defender =
     method move_left =
       previous_location |> (function
           | Some p -> 
-            previous_location <- Some {p with col = p.col - 1}
+            previous_location <- Some {p with col = p.col - 2}
           | None -> ()
         );
         self#queue_draw
 
     method move_right =
-      log "Called move right";
       previous_location |> (function
           | Some p ->
-            previous_location <- Some {p with col = p.col + 1}
+            previous_location <- Some {p with col = p.col + 2}
           | None -> ()
         );
         self#queue_draw
