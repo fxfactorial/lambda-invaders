@@ -1,7 +1,7 @@
 SYN_EXTEN := camlp4o
 PACKAGES := lambda-term lwt.syntax camomile
 EXEC_NAME := lambda-invaders
-FILES := main.ml
+FILES := utils.ml objects.ml main.ml
 
 PACK_COMPILE_STR = ""
 # THIS MAKEFILE DOESN'T WORK CORRECTLY
