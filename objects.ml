@@ -4,7 +4,6 @@ open LTerm_geom
 open LTerm_widget
 open L_utils
 
-
 type action = Fire_rocket of coord
             | Move_left
             | Move_right
@@ -25,6 +24,12 @@ object(self)
                                      background = Some lgreen})
   method draw ctx focused_widget =
     (* Calling super just for that frame wrapping, aka the |_| *)
+    (* Make sure that row1 is smaller than row2 
+       and that col1 is smaller than col2, it goes:       
+                        row1
+                    col1    col2
+                        row2 *)
+
     super#draw ctx focused_widget;
     if not init
     then
@@ -63,20 +68,20 @@ object(self)
                (match action with
                 | Fire_rocket loc ->
                    loc |> string_of_coord |> log;
-                   let ctx = LTerm_draw.sub ctx {row1 = 0;
+                   let ctx = LTerm_draw.sub ctx {row1 = loc.row - 10;
                                                  col1 = loc.col;
-                                                 row2 = loc.row - 1;
+                                                 row2 = loc.row;
                                                  col2 = loc.col + 1} in
-                   (* let rec rocket_painter loc  *)
-  (* ignore (Lwt_engine.on_timer 1.0 true 
-(fun _ -> clock#set_text (get_time ()))); *)
+                   (* IDEA need to add a ivar that holds references
+                   for the rockets and have the timer pick the
+                   appropriate one to draw for position..?  Perhaps
+                   making a separate rocket object makes sense *)
                    LTerm_draw.fill ctx (of_char 'a')
-                   (* LTerm_draw.draw_styled ctx 0 0 *)
-                   (*                        (LTerm_text.of_string "↥"); *)
+                (*                        (LTerm_text.of_string "↥"); *)
                 | _ -> ())
             | None -> () )
       end 
-
+        
   method move_left =
     log "Move left called";
     do_action <- Some Move_left;
