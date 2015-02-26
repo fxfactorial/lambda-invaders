@@ -1,13 +1,13 @@
 SYN_EXTEN := camlp4o
 PACKAGES := lambda-term lwt.syntax camomile
 EXEC_NAME := lambda-invaders
-FILES := utils.ml objects.ml main.ml
+FILES := l_utils.ml objects.ml main.ml
 
 PACK_COMPILE_STR = ""
 # THIS MAKEFILE DOESN'T WORK CORRECTLY
 
 debug:
-	ocamlfind ocamlc -g -syntax camlp4o -package lambda-term \
+	ocamlfind ocamlc -g -safe-string -syntax camlp4o -package lambda-term \
 	-package lwt.syntax -package camomile -package core \
 	-thread -linkpkg -o $(EXEC_NAME) $(FILES)
 	@./$(EXEC_NAME)
