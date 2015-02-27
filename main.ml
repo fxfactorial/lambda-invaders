@@ -35,8 +35,7 @@ let gframe_handler exit_ show_help =
 
 lwt () =
    let do_run, push_layer, pop_layer, exit_ = LTerm_widget.prepare_simple_run () in
-   (* let root_box = new game_box in *)
    let help_modal = new LTerm_widget.modal_frame in
-   let game_frame = new game_frame exit_ (push_layer help_modal)in 
-   
+   let game_frame = new game_frame exit_ (push_layer help_modal) in
+   ignore (Lwt_engine.on_timer 0.1 true (fun e -> game_frame#queue_draw));
    do_run game_frame

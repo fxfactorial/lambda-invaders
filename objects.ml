@@ -4,138 +4,122 @@ open LTerm_geom
 open LTerm_widget
 open L_utils
 
-type action = Fire_rocket of coord
-            | Move_left
-            | Move_right
-
 class game_frame exit_ show_help =
-object(self)
-  inherit LTerm_widget.frame as super
+  object(self)
+    inherit LTerm_widget.frame as super
 
-  val mutable init = false
-  val mutable previous_location = None
-  val mutable do_action = None
+    val mutable init = false
+    val mutable previous_location = None
+    val mutable rockets = [||]
 
-  val defender_style = LTerm_style.({bold = None;
-                                     underline = None;
-                                     blink = None;
-                                     reverse = None;
-                                     foreground = Some lblue;
-                                     background = Some lgreen})
-  method draw ctx focused_widget =
-    (* Calling super just for that frame wrapping, aka the |_| *)
-    (* Make sure that row1 is smaller than row2 
-       and that col1 is smaller than col2, it goes:       
-                        row1
-                    col1    col2
-                        row2 *)
+    val defender_style = LTerm_style.({bold = None;
+                                       underline = None;
+                                       blink = None;
+                                       reverse = None;
+                                       foreground = Some lblue;
+                                       background = Some lgreen})
 
-    super#draw ctx focused_widget;
-    if not init
-    then
-      begin
-        let this_size = LTerm_draw.size ctx in
-        init <- true;
-        previous_location <- Some {row = this_size.rows - 1;
-                                   col = (this_size.cols / 2)};
-        let ctx = LTerm_draw.sub ctx {row1 = this_size.rows - 2;
-                                      col1 = (this_size.cols / 2);
-                                      row2 = this_size.rows - 1;
-                                      col2 = (this_size.cols / 2) + 1} in 
-        (* NOTE Drawing outside of your context is a no op *)
-        LTerm_draw.draw_string ctx 0 0 "λ"
-      end
-    else
-      begin
-        (* TODO Prevent out of bounds errors when widget goes off
-             the edge of screen *)
-        previous_location |>
+    method draw ctx focused_widget =
+      (* Calling super just for that frame wrapping, aka the |_| *)
+      (* Make sure that row1 is smaller than row2 
+         and that col1 is smaller than col2, it goes:       
+                          row1
+                      col1    col2
+                          row2 *)
+      LTerm_draw.clear ctx;
+      super#draw ctx focused_widget;
+
+      if not init
+      then
+        begin
+          let this_size = LTerm_draw.size ctx in
+          init <- true;
+          previous_location <- Some {row = this_size.rows - 1;
+                                     col = (this_size.cols / 2)};
+
+          let ctx = LTerm_draw.sub ctx {row1 = this_size.rows - 2;
+                                        col1 = (this_size.cols / 2);
+                                        row2 = this_size.rows - 1;
+                                        col2 = (this_size.cols / 2) + 1} in
+
+          (* NOTE Drawing outside of your context is a no op *)
+          LTerm_draw.draw_string ctx 0 0 "λ"
+        end
+      else
+        begin
+          (* TODO Prevent out of bounds errors when widget goes off
+               the edge of screen *)
+          previous_location |>
           (function 
             | Some c ->
-               let ctx = LTerm_draw.sub ctx {row1 = c.row - 1;
-                                             col1 = c.col;
-                                             row2 = c.row ;
-                                             col2 = c.col + 1 } in
-               LTerm_draw.clear ctx;
-               LTerm_draw.draw_styled ctx 0 0
-                                      ~style:defender_style
-                                      (LTerm_text.of_string "λ")
+              let ctx = LTerm_draw.sub ctx {row1 = c.row - 1;
+                                            col1 = c.col;
+                                            row2 = c.row ;
+                                            col2 = c.col + 1 } in
+              LTerm_draw.clear ctx;
+              LTerm_draw.draw_styled ctx 0 0
+                ~style:defender_style
+                (LTerm_text.of_string "λ")
             | None -> () );
 
-        do_action |>
-          (function
-            | Some action ->
-               (match action with
-                | Fire_rocket loc ->
-                   loc |> string_of_coord |> log;
-                   let ctx = LTerm_draw.sub ctx {row1 = loc.row - 10;
-                                                 col1 = loc.col;
-                                                 row2 = loc.row;
-                                                 col2 = loc.col + 1} in
-                   (* IDEA need to add a ivar that holds references
-                   for the rockets and have the timer pick the
-                   appropriate one to draw for position..?  Perhaps
-                   making a separate rocket object makes sense *)
-                   LTerm_draw.fill ctx (of_char 'a')
-                (*                        (LTerm_text.of_string "↥"); *)
-                | _ -> ())
-            | None -> () )
-      end 
-        
-  method move_left =
-    log "Move left called";
-    do_action <- Some Move_left;
-    previous_location |>
+          Array.iter (fun (index, roc) ->
+              let ctx = LTerm_draw.sub ctx {row1 = roc.row - 2;
+                                            col1 = roc.col;
+                                            row2 = roc.row - 1;
+                                            col2 = roc.col + 1} in
+              LTerm_draw.draw_styled ctx 0 0 (LTerm_text.of_string "↥");
+              Array.set rockets index (index, {roc with row = roc.row - 1})
+            )
+            rockets
+        end 
+
+    method move_left =
+      previous_location |>
       (function
         | Some p -> 
-           previous_location <- Some {p with col = p.col - 2}
+          previous_location <- Some {p with col = p.col - 2}
         | None -> ()
       );
-    self#queue_draw
 
-  method move_right =
-    do_action <- Some Move_right;
-    previous_location |>
+    method move_right =
+      previous_location |>
       (function
         | Some p ->
-           previous_location <- Some {p with col = p.col + 2}
+          previous_location <- Some {p with col = p.col + 2}
         | None -> ()
       );
-    self#queue_draw
 
-  method fire_rocket =
-    log "Firing the rocket";
-    previous_location |>
+    method fire_rocket =
+      previous_location |>
       (function
         | Some p ->
-           do_action <- Some (Fire_rocket p);
+          (* Add a tuple instead? *)
+          rockets <- Array.append [|(Array.length rockets, p)|] rockets
         | None -> ());
-    self#queue_draw
 
-  initializer
-    self#on_event
-           (function
-             | LTerm_event.Key {code = Left} ->
-                log "Move left ";
-                self#move_left;
-                true
-             | LTerm_event.Key {code = Right} ->
-                self#move_right;
-                true
-             | LTerm_event.Key
-                 {code = LTerm_key.Char ch}
-                  when ch = of_char ' ' ->
-                self#fire_rocket;
-                true
-             | LTerm_event.Key
-                 {meta = true; code = LTerm_key.Char ch}
-                  when ch = of_char 'h' ->
-                show_help ();
-                true
-             | LTerm_event.Key
-                 {code = LTerm_key.Char ch}
-                  when ch = of_char 'q' ->
-                exit_ ();
-                true
-             | _ -> false)
-end
+    initializer
+      self#on_event
+        (function
+          | LTerm_event.Key {code = Left} ->
+            self#move_left;
+            true
+          | LTerm_event.Key {code = Right} ->
+            self#move_right;
+            true
+          | LTerm_event.Key
+              {code = LTerm_key.Char ch}
+            when ch = of_char ' ' ->
+            self#fire_rocket;
+            true
+          | LTerm_event.Key
+              {meta = true; code = LTerm_key.Char ch}
+            when ch = of_char 'h' ->
+            show_help ();
+            true
+          | LTerm_event.Key
+              {code = LTerm_key.Char ch}
+            when ch = of_char 'q' ->
+            exit_ ();
+            true
+          | _ -> false)
+  end
