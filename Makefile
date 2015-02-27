@@ -6,6 +6,7 @@ FILES := l_utils.ml objects.ml main.ml
 PACK_COMPILE_STR = ""
 # THIS MAKEFILE DOESN'T WORK CORRECTLY
 
+# ocamldebug `ocamlfind query -recursive -i-format camomile` lambda-invaders
 debug:
 	ocamlfind ocamlc -g -safe-string -syntax camlp4o -package lambda-term \
 	-package lwt.syntax -package camomile -package core \

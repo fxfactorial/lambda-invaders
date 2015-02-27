@@ -4,6 +4,9 @@ open LTerm_geom
 open LTerm_widget
 open L_utils
 
+type alien = {index:(int * int);
+              coord:coord}
+               
 class game_frame exit_ show_help =
   object(self)
     inherit LTerm_widget.frame as super
@@ -11,6 +14,7 @@ class game_frame exit_ show_help =
     val mutable init = false
     val mutable previous_location = None
     val mutable rockets = [||]
+    val mutable aliens = Array.make_matrix 5 5 None
 
     val defender_style = LTerm_style.({bold = None;
                                        underline = None;
@@ -34,9 +38,16 @@ class game_frame exit_ show_help =
         begin
           let this_size = LTerm_draw.size ctx in
           init <- true;
+          let alien_ctx = LTerm_draw.sub ctx {row1 = 1;
+                                              col1 = 3;
+                                              row2 = 6;
+                                              col2 = 8} in
+          (* Aliens is not done *)
+          LTerm_draw.fill alien_ctx (of_char 'a');
+          
           previous_location <- Some {row = this_size.rows - 1;
                                      col = (this_size.cols / 2)};
-
+          
           let ctx = LTerm_draw.sub ctx {row1 = this_size.rows - 2;
                                         col1 = (this_size.cols / 2);
                                         row2 = this_size.rows - 1;
@@ -61,6 +72,8 @@ class game_frame exit_ show_help =
                 ~style:defender_style
                 (LTerm_text.of_string "λ")
             | None -> () );
+              (* let s = " Index: " ^ string_of_int index in *)
+              (* log ((string_of_coord roc) ^ s); *)
 
           Array.iter (fun (index, roc) ->
               let ctx = LTerm_draw.sub ctx {row1 = roc.row - 2;
@@ -68,9 +81,11 @@ class game_frame exit_ show_help =
                                             row2 = roc.row - 1;
                                             col2 = roc.col + 1} in
               LTerm_draw.draw_styled ctx 0 0 (LTerm_text.of_string "↥");
-              Array.set rockets index (index, {roc with row = roc.row - 1})
-            )
-            rockets
+              Array.set rockets index (index , {roc with row = roc.row - 1})
+                     )
+                     (* Need the copy otherwise mutating the array as
+                     you're iterating over it, a bug *)
+                     (Array.copy rockets)
         end 
 
     method move_left =
@@ -79,7 +94,7 @@ class game_frame exit_ show_help =
         | Some p -> 
           previous_location <- Some {p with col = p.col - 2}
         | None -> ()
-      );
+      )
 
     method move_right =
       previous_location |>
@@ -87,15 +102,15 @@ class game_frame exit_ show_help =
         | Some p ->
           previous_location <- Some {p with col = p.col + 2}
         | None -> ()
-      );
+      )
 
     method fire_rocket =
       previous_location |>
       (function
         | Some p ->
-          (* Add a tuple instead? *)
           rockets <- Array.append [|(Array.length rockets, p)|] rockets
         | None -> ());
+      self#queue_draw;
 
     initializer
       self#on_event
