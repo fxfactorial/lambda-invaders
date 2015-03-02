@@ -6,7 +6,7 @@ FILES := l_utils.ml objects.ml main.ml
 # for debugging, use this invocation
 # ocamldebug `ocamlfind query -recursive -i-format camomile` lambda-invaders
 
-all:$(FILES) 
+all:$(FILES)
 	ocamlfind ocamlopt -syntax $(SYN_EXTEN) -package lambda-term \
 	-package lwt.syntax -package camomile -package batteries -thread -linkpkg \
 	-o $(EXEC_NAME) $(FILES)

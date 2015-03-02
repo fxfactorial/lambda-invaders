@@ -153,20 +153,22 @@ class game_frame exit_ show_help show_endgame =
           then
             direction := 0;
 
-          begin 
+          begin
+            (* This is broken as it stands, need to check the whole
+               column rather than element *)
             match Array.get aliens 0 with
             | (Some (index, (row, column))) -> 
               if column = 1
               then
                 (direction := 2;
                  go_down := !go_down + 1)
-              else if (match Array.get aliens ((Array.length aliens) - 1) with 
+              else (match Array.get aliens ((Array.length aliens) - 1) with 
                            | Some (index, (row, column)) ->
-                             column = ((LTerm_draw.size ctx).cols - 2)
-                           | None -> false)
-              then
-                (direction := 1;
-                 go_down := !go_down +1);
+                             if (column = ((LTerm_draw.size ctx).cols - 2))
+                             then
+                               (direction := 1;
+                                go_down := !go_down +1);
+                           | None -> ())
             | None -> ()
           end;
 
