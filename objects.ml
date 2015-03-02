@@ -85,8 +85,9 @@ class game_frame exit_ show_help show_endgame =
       else
         if (fst (snd (Opt.get (Array.get aliens ((Array.length aliens) - 1))))) = 12
         then current_event |> (function
-                                  Some e -> Lwt_engine.stop_event e;
-                                  self#show_endgame_modal ());
+            | Some e -> Lwt_engine.stop_event e;
+              self#show_endgame_modal ()
+            | None -> ());
       
         begin
           (* Drawing the lambda defender *)
@@ -109,23 +110,31 @@ class game_frame exit_ show_help show_endgame =
             match !direction with
             (* 2 is right, 1 is left, 0 is down *)
             | 0 ->
-               Array.iter (fun (Some (index, (i, j))) ->
-                           Array.set aliens index (Some (index, ((i + 1), j)));
-                           LTerm_draw.draw_string ctx (i + 1) j "b")
-                          cp;
+              Array.iter (fun a ->
+                  match a with
+                  | Some (index, (i, j)) ->
+                    Array.set aliens index (Some (index, ((i + 1), j)));
+                    LTerm_draw.draw_string ctx (i + 1) j "b"
+                  | None -> ())
+                cp;
                go_down := !go_down mod 3;
                direction := !direction + 1;
-
             | 1 ->
-               Array.iter (fun (Some (index, (i, j))) ->
-                           Array.set aliens index (Some (index, (i, (j - 1))));
-                           LTerm_draw.draw_string ctx i (j - 1) "b")
-                          cp;
+              Array.iter (fun a ->
+                  match a with
+                  | Some (index, (i, j)) ->
+                    Array.set aliens index (Some (index, (i, (j - 1))));
+                    LTerm_draw.draw_string ctx i (j - 1) "b"
+                  | None -> ())
+                cp;
             | 2 ->
-               Array.iter (fun (Some (index, (i, j))) ->
-                           Array.set aliens index (Some (index, (i, (j + 1))));
-                           LTerm_draw.draw_string ctx i (j + 1) "b")
-                          cp;
+              Array.iter (fun a ->
+                  match a with
+                  | Some (index, (i, j)) ->
+                    Array.set aliens index (Some (index, (i, (j + 1))));
+                    LTerm_draw.draw_string ctx i (j + 1) "b"
+                  | None -> ())
+                cp;
             | _ -> ();
 
                    (* Change directions *)
@@ -156,11 +165,16 @@ class game_frame exit_ show_help show_endgame =
                          it needs to be something like try_lwt *)
               if roc.row > 1 then
                 begin
-                  Array.iter (fun (Some (index, (row, column))) ->
-                      if (roc.row = row) &&
-                         (roc.col = column )
-                      then
-                        log "Collision occured"
+                  (* Array.iter (fun (Some (index, (row, column))) -> *)
+                  Array.iter (fun r ->
+                      match r with
+                      | Some (index, (row, column)) -> 
+                        if (roc.row = row) &&
+                           (roc.col = column)
+                        then
+                          (* log "Collision occured" *)
+                          Array.set aliens index None;
+                      | None -> ()
                     )
                     aliens;
                   LTerm_draw.draw_styled ctx 0 0 ~style:rocket_style
