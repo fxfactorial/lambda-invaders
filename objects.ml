@@ -4,9 +4,8 @@ open LTerm_geom
 open LTerm_widget
 open L_utils
 
-type alien = {index:(int * int);
-              coord:coord}
-               
+type direction = Left | Right | Down
+                                  
 class game_frame exit_ show_help =
   object(self)
     inherit LTerm_widget.frame as super
@@ -14,7 +13,9 @@ class game_frame exit_ show_help =
     val mutable init = false
     val mutable previous_location = None
     val mutable rockets = [||]
-    val mutable aliens = Array.make_matrix 5 5 None
+    val mutable aliens = [||]
+    val hits = ref 0
+    val direction = ref Right
 
     val defender_style = LTerm_style.({bold = None;
                                        underline = None;
@@ -22,6 +23,13 @@ class game_frame exit_ show_help =
                                        reverse = None;
                                        foreground = Some lblue;
                                        background = Some lgreen})
+
+    val rocket_style = LTerm_style.({bold = None;
+                                     underline = None;
+                                     blink = None;
+                                     reverse = None;
+                                     foreground = Some lred;
+                                     background = None})
 
     method draw ctx focused_widget =
       (* Calling super just for that frame wrapping, aka the |_| *)
@@ -38,56 +46,89 @@ class game_frame exit_ show_help =
         begin
           let this_size = LTerm_draw.size ctx in
           init <- true;
-          let alien_ctx = LTerm_draw.sub ctx {row1 = 1;
-                                              col1 = 3;
-                                              row2 = 6;
-                                              col2 = 8} in
-          (* Aliens is not done *)
-          LTerm_draw.fill alien_ctx (of_char 'a');
           
           previous_location <- Some {row = this_size.rows - 1;
                                      col = (this_size.cols / 2)};
           
-          let ctx = LTerm_draw.sub ctx {row1 = this_size.rows - 2;
+          let ctx_ = LTerm_draw.sub ctx {row1 = this_size.rows - 2;
                                         col1 = (this_size.cols / 2);
                                         row2 = this_size.rows - 1;
                                         col2 = (this_size.cols / 2) + 1} in
 
           (* NOTE Drawing outside of your context is a no op *)
-          LTerm_draw.draw_string ctx 0 0 "λ"
+          LTerm_draw.draw_string ctx_ 0 0 "λ";
+          (* TODO Pick smarter values as a function of terminal size? *)
+          for i = 3 to 10 do
+            for j = 10 to 44 do
+              if (i mod 2 > 0) && (j mod 2 > 0)
+              then
+                aliens <- Array.append [|(Array.length aliens, (i, j))|] aliens;
+                LTerm_draw.draw_string ctx i j "a"
+            done
+          done 
+                
         end
       else
         begin
           (* TODO Prevent out of bounds errors when widget goes off
                the edge of screen *)
+          (* Drawing the lambda defender *)
           previous_location |>
-          (function 
+          (function
             | Some c ->
-              let ctx = LTerm_draw.sub ctx {row1 = c.row - 1;
+                let ctx = LTerm_draw.sub ctx {row1 = c.row - 1;
                                             col1 = c.col;
                                             row2 = c.row ;
                                             col2 = c.col + 1 } in
-              LTerm_draw.clear ctx;
-              LTerm_draw.draw_styled ctx 0 0
-                ~style:defender_style
-                (LTerm_text.of_string "λ")
-            | None -> () );
-              (* let s = " Index: " ^ string_of_int index in *)
-              (* log ((string_of_coord roc) ^ s); *)
+                LTerm_draw.clear ctx;
+                LTerm_draw.draw_styled ctx 0 0
+                  ~style:defender_style
+                  (LTerm_text.of_string "λ")
+            | None -> ());
 
+          (* (\* Aliens drawing *\) *)
+          (* let cp = Array.copy aliens in *)
+          (* match !direction with *)
+          (* | Down -> *)
+          (*    Array.iter (fun (index, (i, j)) -> *)
+          (*                Array.set aliens index (index, ((i + 1), j)); *)
+          (*                LTerm_draw.draw_string ctx (i + 1) j "b") *)
+          (*               cp; *)
+          (* | Left -> *)
+          (*    Array.iter (fun (index, (i, j)) -> *)
+          (*                Array.set aliens index (index, (i, (j - 1))); *)
+          (*                LTerm_draw.draw_string ctx i (j - 1) "b") *)
+          (*               cp; *)
+          (* | Right -> *)
+          (*    Array.iter (fun (index, (i, j)) -> *)
+          (*                Array.set aliens index (index, (i, (j + 1))); *)
+          (*                LTerm_draw.draw_string ctx i (j + 1) "b") *)
+          (*               cp; *)
+             
+             (* if ((LTerm_draw.size ctx).cols - 2) = *)
+             (*      (snd (snd (Array.get aliens ((Array.length aliens) - 1)))) *)
+             
+          (* Rockets drawing *)
           Array.iter (fun (index, roc) ->
-              let ctx = LTerm_draw.sub ctx {row1 = roc.row - 2;
+              let ctx = LTerm_draw.sub ctx {row1 = roc.row - 1;
                                             col1 = roc.col;
-                                            row2 = roc.row - 1;
+                                            row2 = roc.row;
                                             col2 = roc.col + 1} in
-              LTerm_draw.draw_styled ctx 0 0 (LTerm_text.of_string "↥");
-              Array.set rockets index (index , {roc with row = roc.row - 1})
-                     )
+              (* Regular exception handling doesn't work cause
+                         it needs to be something like try_lwt *)
+              if roc.row > 1 then
+                begin 
+                  LTerm_draw.draw_styled ctx 0 0 ~style:rocket_style
+                    (LTerm_text.of_string "↥");
+                  Array.set rockets index (index , {roc with row = roc.row - 1})
+                end
+              else
+                  Array.set rockets index (index , roc))
                      (* Need the copy otherwise mutating the array as
-                     you're iterating over it, a bug *)
+                        you're iterating over it, a bug *)
                      (Array.copy rockets)
         end 
-
+          
     method move_left =
       previous_location |>
       (function
