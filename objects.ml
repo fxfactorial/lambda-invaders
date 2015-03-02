@@ -16,6 +16,7 @@ class game_frame exit_ show_help =
     val mutable aliens = [||]
     val hits = ref 0
     val direction = ref Right
+    val max_cols = ref 0
 
     val defender_style = LTerm_style.({bold = None;
                                        underline = None;
@@ -46,6 +47,7 @@ class game_frame exit_ show_help =
         begin
           let this_size = LTerm_draw.size ctx in
           init <- true;
+          max_cols := this_size.cols;
           
           previous_location <- Some {row = this_size.rows - 1;
                                      col = (this_size.cols / 2)};
@@ -58,6 +60,7 @@ class game_frame exit_ show_help =
           (* NOTE Drawing outside of your context is a no op *)
           LTerm_draw.draw_string ctx_ 0 0 "λ";
           (* TODO Pick smarter values as a function of terminal size? *)
+
           for i = 3 to 10 do
             for j = 10 to 44 do
               if (i mod 2 > 0) && (j mod 2 > 0)
@@ -132,7 +135,8 @@ class game_frame exit_ show_help =
     method move_left =
       previous_location |>
       (function
-        | Some p -> 
+        | Some p ->
+          if p.col > 2 then
           previous_location <- Some {p with col = p.col - 2}
         | None -> ()
       )
@@ -141,6 +145,7 @@ class game_frame exit_ show_help =
       previous_location |>
       (function
         | Some p ->
+          if p.col < !max_cols - 3 then
           previous_location <- Some {p with col = p.col + 2}
         | None -> ()
       )
