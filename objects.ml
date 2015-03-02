@@ -13,6 +13,7 @@ class game_frame exit_ show_help =
     val mutable rockets = [||]
     val mutable aliens = [||]
     val hits = ref 0
+    val go_down = ref 0 
     (* 0 is down, 1 is left, 2 is right *)
     val direction = ref 1
     val max_cols = ref 0
@@ -90,12 +91,15 @@ class game_frame exit_ show_help =
           (* Aliens drawing *)
             let cp = Array.copy aliens in
             match !direction with
-            (* Right, Down, Left *)
+            (* 2 is right, 1 is left, 0 is down *)
             | 0 ->
                Array.iter (fun (index, (i, j)) ->
                            Array.set aliens index (index, ((i + 1), j));
                            LTerm_draw.draw_string ctx (i + 1) j "b")
                           cp;
+               go_down := !go_down mod 3;
+               direction := !direction + 1;
+
             | 1 ->
                Array.iter (fun (index, (i, j)) ->
                            Array.set aliens index (index, (i, (j - 1)));
@@ -112,18 +116,22 @@ class game_frame exit_ show_help =
                    
 
           end ;
-          
-          
+          (* Setting the direction *)
+          if !go_down = 3
+          then
+            direction := 0;
+
           if ((snd (snd (Array.get aliens 0))) = 1)
           then
-            direction := 2;
-          
-          if ((LTerm_draw.size ctx).cols - 2) =
-               (snd (snd (Array.get aliens ((Array.length aliens) - 1))))
+            (direction := 2;
+             go_down := !go_down + 1)
+          else if ((LTerm_draw.size ctx).cols - 2) =
+                    (snd (snd (Array.get aliens ((Array.length aliens) - 1))))
           then
-            direction := 1;
+            (direction := 1;
+             go_down := !go_down +1);
 
-             
+
           (* Rockets drawing *)
           Array.iter (fun (index, roc) ->
               let ctx = LTerm_draw.sub ctx {row1 = roc.row - 1;
