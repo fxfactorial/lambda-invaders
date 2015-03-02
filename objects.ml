@@ -4,7 +4,7 @@ open LTerm_geom
 open LTerm_widget
 open L_utils
 
-class game_frame exit_ show_help =
+class game_frame exit_ show_help show_endgame =
   object(self)
     inherit LTerm_widget.frame as super
 
@@ -17,6 +17,7 @@ class game_frame exit_ show_help =
     (* 0 is down, 1 is left, 2 is right *)
     val direction = ref 1
     val max_cols = ref 0
+    val mutable current_event = None
 
     val defender_style = LTerm_style.({bold = None;
                                        underline = None;
@@ -31,6 +32,12 @@ class game_frame exit_ show_help =
                                      reverse = None;
                                      foreground = Some lred;
                                      background = None})
+
+    (* Not sure why this doesn't compile without the explicit type
+       signature *)
+    method queue_event_draw (event : Lwt_engine.event) =
+      current_event <- Some event;
+      self#queue_draw
 
     method draw ctx focused_widget =
       (* Calling super just for that frame wrapping, aka the |_| *)
@@ -61,7 +68,9 @@ class game_frame exit_ show_help =
           LTerm_draw.draw_string ctx_ 0 0 "λ";
           (* TODO Pick smarter values as a function of terminal size? *)
 
+          (* Rows*)
           for i = 3 to 10 do
+            (* Columns *)
             for j = 10 to 44 do
               if (i mod 2 > 0) && (j mod 2 > 0)
               then
@@ -72,6 +81,11 @@ class game_frame exit_ show_help =
                 
         end
       else
+        if (fst (snd (Array.get aliens ((Array.length aliens) - 1)))) = 12
+        then current_event |> (function
+                                  Some e -> Lwt_engine.stop_event e;
+                                  self#show_endgame_modal ());
+      
         begin
           (* Drawing the lambda defender *)
           previous_location |>
@@ -113,8 +127,6 @@ class game_frame exit_ show_help =
             | _ -> ();
 
                    (* Change directions *)
-                   
-
           end ;
           (* Setting the direction *)
           if !go_down = 3
@@ -151,8 +163,11 @@ class game_frame exit_ show_help =
                      (* Need the copy otherwise mutating the array as
                         you're iterating over it, a bug *)
                      (Array.copy rockets)
-        end 
-          
+        end
+
+    method show_endgame_modal () =
+      show_endgame ()
+
     method move_left =
       previous_location |>
       (function
