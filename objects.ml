@@ -4,8 +4,6 @@ open LTerm_geom
 open LTerm_widget
 open L_utils
 
-type direction = Left | Right | Down
-                                  
 class game_frame exit_ show_help =
   object(self)
     inherit LTerm_widget.frame as super
@@ -15,7 +13,8 @@ class game_frame exit_ show_help =
     val mutable rockets = [||]
     val mutable aliens = [||]
     val hits = ref 0
-    val direction = ref Right
+    (* 0 is down, 1 is left, 2 is right *)
+    val direction = ref 1
     val max_cols = ref 0
 
     val defender_style = LTerm_style.({bold = None;
@@ -66,15 +65,13 @@ class game_frame exit_ show_help =
               if (i mod 2 > 0) && (j mod 2 > 0)
               then
                 aliens <- Array.append [|(Array.length aliens, (i, j))|] aliens;
-                LTerm_draw.draw_string ctx i j "a"
+                LTerm_draw.draw_string ctx i j "b"
             done
           done 
                 
         end
       else
         begin
-          (* TODO Prevent out of bounds errors when widget goes off
-               the edge of screen *)
           (* Drawing the lambda defender *)
           previous_location |>
           (function
@@ -89,27 +86,43 @@ class game_frame exit_ show_help =
                   (LTerm_text.of_string "λ")
             | None -> ());
 
-          (* (\* Aliens drawing *\) *)
-          (* let cp = Array.copy aliens in *)
-          (* match !direction with *)
-          (* | Down -> *)
-          (*    Array.iter (fun (index, (i, j)) -> *)
-          (*                Array.set aliens index (index, ((i + 1), j)); *)
-          (*                LTerm_draw.draw_string ctx (i + 1) j "b") *)
-          (*               cp; *)
-          (* | Left -> *)
-          (*    Array.iter (fun (index, (i, j)) -> *)
-          (*                Array.set aliens index (index, (i, (j - 1))); *)
-          (*                LTerm_draw.draw_string ctx i (j - 1) "b") *)
-          (*               cp; *)
-          (* | Right -> *)
-          (*    Array.iter (fun (index, (i, j)) -> *)
-          (*                Array.set aliens index (index, (i, (j + 1))); *)
-          (*                LTerm_draw.draw_string ctx i (j + 1) "b") *)
-          (*               cp; *)
-             
-             (* if ((LTerm_draw.size ctx).cols - 2) = *)
-             (*      (snd (snd (Array.get aliens ((Array.length aliens) - 1)))) *)
+          begin 
+          (* Aliens drawing *)
+            let cp = Array.copy aliens in
+            match !direction with
+            (* Right, Down, Left *)
+            | 0 ->
+               Array.iter (fun (index, (i, j)) ->
+                           Array.set aliens index (index, ((i + 1), j));
+                           LTerm_draw.draw_string ctx (i + 1) j "b")
+                          cp;
+            | 1 ->
+               Array.iter (fun (index, (i, j)) ->
+                           Array.set aliens index (index, (i, (j - 1)));
+                           LTerm_draw.draw_string ctx i (j - 1) "b")
+                          cp;
+            | 2 ->
+               Array.iter (fun (index, (i, j)) ->
+                           Array.set aliens index (index, (i, (j + 1)));
+                           LTerm_draw.draw_string ctx i (j + 1) "b")
+                          cp;
+            | _ -> ();
+
+                   (* Change directions *)
+                   
+
+          end ;
+          
+          
+          if ((snd (snd (Array.get aliens 0))) = 1)
+          then
+            direction := 2;
+          
+          if ((LTerm_draw.size ctx).cols - 2) =
+               (snd (snd (Array.get aliens ((Array.length aliens) - 1))))
+          then
+            direction := 1;
+
              
           (* Rockets drawing *)
           Array.iter (fun (index, roc) ->

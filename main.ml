@@ -11,6 +11,6 @@ lwt () =
    let speed_modal = new LTerm_widget.modal_frame in
 
    let game_frame = new game_frame exit_ (push_layer help_modal) in
-   ignore (Lwt_engine.on_timer 0.10 true (fun e -> game_frame#queue_draw));
+   ignore (Lwt_engine.on_timer 0.15 true (fun e -> game_frame#queue_draw));
 
    do_run game_frame
