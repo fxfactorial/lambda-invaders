@@ -50,6 +50,14 @@ class game_frame exit_ show_help show_endgame =
                           row2 *)
       LTerm_draw.clear ctx;
       super#draw ctx focused_widget;
+      LTerm_draw.draw_string ctx 0 0 ("Hits: " ^ (string_of_int !hits));
+      LTerm_draw.draw_string ctx 13 0 ~style:LTerm_style.({bold = None;
+                                                    underline = None;
+                                                    blink = Some true;
+                                                    reverse = None;
+                                                    foreground = Some lyellow;
+                                                    background = None})
+        "Game Over Line";
 
       if not init
       then
@@ -77,15 +85,16 @@ class game_frame exit_ show_help show_endgame =
               if (i mod 2 > 0) && (j mod 2 > 0)
               then
                 aliens <- Array.append [|Some (Array.length aliens, (i, j))|] aliens;
-                LTerm_draw.draw_string ctx i j "b"
+                LTerm_draw.draw_string ctx i j "A"
             done
           done 
                 
         end
       else
-        if (fst (snd (Opt.get (Array.get aliens ((Array.length aliens) - 1))))) = 12
+        if (fst (snd (Opt.get (Array.get aliens 51)))) = 12
         then current_event |> (function
-            | Some e -> Lwt_engine.stop_event e;
+            | Some e ->
+              Lwt_engine.stop_event e;
               self#show_endgame_modal ()
             | None -> ());
       
@@ -114,7 +123,7 @@ class game_frame exit_ show_help show_endgame =
                   match a with
                   | Some (index, (i, j)) ->
                     Array.set aliens index (Some (index, ((i + 1), j)));
-                    LTerm_draw.draw_string ctx (i + 1) j "b"
+                    LTerm_draw.draw_string ctx (i + 1) j "A"
                   | None -> ())
                 cp;
                go_down := !go_down mod 3;
@@ -124,7 +133,7 @@ class game_frame exit_ show_help show_endgame =
                   match a with
                   | Some (index, (i, j)) ->
                     Array.set aliens index (Some (index, (i, (j - 1))));
-                    LTerm_draw.draw_string ctx i (j - 1) "b"
+                    LTerm_draw.draw_string ctx i (j - 1) "A"
                   | None -> ())
                 cp;
             | 2 ->
@@ -132,27 +141,46 @@ class game_frame exit_ show_help show_endgame =
                   match a with
                   | Some (index, (i, j)) ->
                     Array.set aliens index (Some (index, (i, (j + 1))));
-                    LTerm_draw.draw_string ctx i (j + 1) "b"
+                    LTerm_draw.draw_string ctx i (j + 1) "A"
                   | None -> ())
                 cp;
             | _ -> ();
 
-                   (* Change directions *)
+              (* Change directions *)
           end ;
           (* Setting the direction *)
           if !go_down = 3
           then
             direction := 0;
 
-          if ((snd (snd (Opt.get (Array.get aliens 0)))) = 1)
-          then
-            (direction := 2;
-             go_down := !go_down + 1)
-          else if ((LTerm_draw.size ctx).cols - 2) =
-                    (snd (snd (Opt.get (Array.get aliens ((Array.length aliens) - 1)))))
-          then
-            (direction := 1;
-             go_down := !go_down +1);
+          begin 
+            match Array.get aliens 0 with
+            | (Some (index, (row, column))) -> 
+              if column = 1
+              then
+                (direction := 2;
+                 go_down := !go_down + 1)
+              else if (match Array.get aliens ((Array.length aliens) - 1) with 
+                           | Some (index, (row, column)) ->
+                             column = ((LTerm_draw.size ctx).cols - 2)
+                           | None -> false)
+              then
+                (direction := 1;
+                 go_down := !go_down +1);
+            | None -> ()
+          end;
+
+          (*   | None -> () *)
+          (* end ; *)
+          (*   begin *)
+          (*     match Array.get aliens ((Array.length aliens) - 1) with *)
+          (*     | Some (index, (row, column)) -> *)
+          (*       if ((LTerm_draw.size ctx).cols - 2) = column *)
+          (*       then *)
+          (*         (direction := 1; *)
+          (*          go_down := !go_down +1) *)
+          (*     | None -> () *)
+          (*   end ; *)
 
 
           (* Rockets drawing *)
@@ -172,8 +200,10 @@ class game_frame exit_ show_help show_endgame =
                         if (roc.row = row) &&
                            (roc.col = column)
                         then
-                          (* log "Collision occured" *)
-                          Array.set aliens index None;
+                          begin 
+                            Array.set aliens index None;
+                            hits := !hits + 1
+                          end
                       | None -> ()
                     )
                     aliens;
