@@ -9,7 +9,7 @@ PACK_COMPILE_STR = ""
 # ocamldebug `ocamlfind query -recursive -i-format camomile` lambda-invaders
 debug:
 	ocamlfind ocamlc -g -safe-string -syntax camlp4o -package lambda-term \
-	-package lwt.syntax -package camomile -package core \
+	-package lwt.syntax -package camomile -package core -package batteries \
 	-thread -linkpkg -o $(EXEC_NAME) $(FILES)
 	@./$(EXEC_NAME)
 	@cat log

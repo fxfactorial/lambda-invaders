@@ -4,6 +4,8 @@ open LTerm_geom
 open LTerm_widget
 open L_utils
 
+module Opt = Batteries.Option
+
 class game_frame exit_ show_help show_endgame =
   object(self)
     inherit LTerm_widget.frame as super
@@ -74,14 +76,14 @@ class game_frame exit_ show_help show_endgame =
             for j = 10 to 44 do
               if (i mod 2 > 0) && (j mod 2 > 0)
               then
-                aliens <- Array.append [|(Array.length aliens, (i, j))|] aliens;
+                aliens <- Array.append [|Some (Array.length aliens, (i, j))|] aliens;
                 LTerm_draw.draw_string ctx i j "b"
             done
           done 
                 
         end
       else
-        if (fst (snd (Array.get aliens ((Array.length aliens) - 1)))) = 12
+        if (fst (snd (Opt.get (Array.get aliens ((Array.length aliens) - 1))))) = 12
         then current_event |> (function
                                   Some e -> Lwt_engine.stop_event e;
                                   self#show_endgame_modal ());
@@ -107,21 +109,21 @@ class game_frame exit_ show_help show_endgame =
             match !direction with
             (* 2 is right, 1 is left, 0 is down *)
             | 0 ->
-               Array.iter (fun (index, (i, j)) ->
-                           Array.set aliens index (index, ((i + 1), j));
+               Array.iter (fun (Some (index, (i, j))) ->
+                           Array.set aliens index (Some (index, ((i + 1), j)));
                            LTerm_draw.draw_string ctx (i + 1) j "b")
                           cp;
                go_down := !go_down mod 3;
                direction := !direction + 1;
 
             | 1 ->
-               Array.iter (fun (index, (i, j)) ->
-                           Array.set aliens index (index, (i, (j - 1)));
+               Array.iter (fun (Some (index, (i, j))) ->
+                           Array.set aliens index (Some (index, (i, (j - 1))));
                            LTerm_draw.draw_string ctx i (j - 1) "b")
                           cp;
             | 2 ->
-               Array.iter (fun (index, (i, j)) ->
-                           Array.set aliens index (index, (i, (j + 1)));
+               Array.iter (fun (Some (index, (i, j))) ->
+                           Array.set aliens index (Some (index, (i, (j + 1))));
                            LTerm_draw.draw_string ctx i (j + 1) "b")
                           cp;
             | _ -> ();
@@ -133,12 +135,12 @@ class game_frame exit_ show_help show_endgame =
           then
             direction := 0;
 
-          if ((snd (snd (Array.get aliens 0))) = 1)
+          if ((snd (snd (Opt.get (Array.get aliens 0)))) = 1)
           then
             (direction := 2;
              go_down := !go_down + 1)
           else if ((LTerm_draw.size ctx).cols - 2) =
-                    (snd (snd (Array.get aliens ((Array.length aliens) - 1))))
+                    (snd (snd (Opt.get (Array.get aliens ((Array.length aliens) - 1)))))
           then
             (direction := 1;
              go_down := !go_down +1);
@@ -153,7 +155,14 @@ class game_frame exit_ show_help show_endgame =
               (* Regular exception handling doesn't work cause
                          it needs to be something like try_lwt *)
               if roc.row > 1 then
-                begin 
+                begin
+                  Array.iter (fun (Some (index, (row, column))) ->
+                      if (roc.row = row) &&
+                         (roc.col = column )
+                      then
+                        log "Collision occured"
+                    )
+                    aliens;
                   LTerm_draw.draw_styled ctx 0 0 ~style:rocket_style
                     (LTerm_text.of_string "↥");
                   Array.set rockets index (index , {roc with row = roc.row - 1})
