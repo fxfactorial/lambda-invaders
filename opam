@@ -1,0 +1,20 @@
+opam-version: "1.2"
+name: "lambda-invaders"
+version: "0.1"
+dev-repo: "https://github.com/fxfactorial/lambda-invaders.git"
+maintainer: "Edgar Aroutiounian <edgar.factorial@gmail.com>"
+authors: "Edgar Aroutiounian <edgar.factorial@gmail.com>"
+license: "GPL3"
+homepage: "https://github.com/fxfactorial/lambda-invaders"
+bug-reports: "https://github.com/fxfactorial/lambda-invaders.git"
+build: [
+  [make]
+]
+install: [make "install"]
+remove: ["ocamlfind" "remove" "lambda-invaders"]
+depends: [
+  "ocamlfind"   {build}
+  "lambda-term" {>= "1.8"}
+]
+
+available: [ ocaml-version >= "4.02.1" ]

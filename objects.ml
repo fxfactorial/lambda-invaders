@@ -4,7 +4,9 @@ open LTerm_geom
 open LTerm_widget
 open L_utils
 
-module Opt = Batteries.Option
+type alien = {index:int;
+              spot:(int * int);
+              drawing_char:(CamomileLibrary.UChar.t)}
 
 class game_frame exit_ show_help show_endgame =
   object(self)
@@ -84,14 +86,16 @@ class game_frame exit_ show_help show_endgame =
             for j = 10 to 44 do
               if (i mod 2 > 0) && (j mod 2 > 0)
               then
-                aliens <- Array.append [|Some (Array.length aliens, (i, j))|] aliens;
+                aliens <- Array.append [|{index = Array.length aliens;
+                                          spot = (i, j);
+                                          drawing_char = (of_int 128125)}|] aliens;
               LTerm_draw.draw_char ctx i j (of_int 128125)
             done
           done 
                 
         end
       else
-        if (fst (snd (Opt.get (Array.get aliens 51)))) = 12
+        if (fst (Array.get aliens 51).spot) = 12
         then current_event |> (function
             | Some e ->
               Lwt_engine.stop_event e;
@@ -104,9 +108,9 @@ class game_frame exit_ show_help show_endgame =
           (function
             | Some c ->
                 let ctx = LTerm_draw.sub ctx {row1 = c.row - 1;
-                                            col1 = c.col;
-                                            row2 = c.row ;
-                                            col2 = c.col + 1 } in
+                                              col1 = c.col;
+                                              row2 = c.row ;
+                                              col2 = c.col + 1 } in
                 LTerm_draw.clear ctx;
                 LTerm_draw.draw_styled ctx 0 0
                   ~style:defender_style
@@ -120,56 +124,53 @@ class game_frame exit_ show_help show_endgame =
             (* 2 is right, 1 is left, 0 is down *)
             | 0 ->
               Array.iter (fun a ->
-                  match a with
-                  | Some (index, (i, j)) ->
-                     Array.set aliens index (Some (index, ((i + 1), j)));
-                     LTerm_draw.draw_char ctx 0 0 (of_int 128125)
-                  | None -> ())
-                cp;
+                          match a with
+                          | {index = index; spot = (i, j); drawing_char = d} as p -> 
+                             Array.set aliens index {p with spot = (i + 1, j)};
+                             LTerm_draw.draw_char ctx 0 0 d)
+                         cp;
                go_down := !go_down mod 3;
                direction := !direction + 1;
             | 1 ->
               Array.iter (fun a ->
-                  match a with
-                  | Some (index, (i, j)) ->
-                    Array.set aliens index (Some (index, (i, (j - 1))));
-                    LTerm_draw.draw_char ctx i (j - 1) (of_int 128125) 
-                  | None -> ())
-                cp;
+                          match a with
+                          | {index = index; spot = (i, j); drawing_char = d} as p -> 
+                             Array.set aliens index {p with spot = (i, j - 1)};
+                             LTerm_draw.draw_char ctx i (j - 1) d)
+                         cp;
             | 2 ->
               Array.iter (fun a ->
-                  match a with
-                  | Some (index, (i, j)) ->
-                    Array.set aliens index (Some (index, (i, (j + 1))));
-                    LTerm_draw.draw_char ctx i (j + 1) (of_int 128125) 
-                  | None -> ())
-                cp;
+                          match a with
+                          | {index = index; spot = (i, j); drawing_char = d} as p -> 
+                             Array.set aliens index {p with spot = (i, j + 1)};
+                             LTerm_draw.draw_char ctx i (j + 1) d)
+                         cp;
             | _ -> ();
 
-              (* Change directions *)
+                   (* Change directions *)
           end ;
           (* Setting the direction *)
           if !go_down = 3
           then
             direction := 0;
-
+          
           begin
             (* This is broken as it stands, need to check the whole
                column rather than element *)
             match Array.get aliens 0 with
-            | (Some (index, (row, column))) -> 
+            | {index = index; spot = (row, column)} -> 
+            (* | (Some (index, (row, column))) ->  *)
               if column = 1
               then
                 (direction := 2;
                  go_down := !go_down + 1)
-              else (match Array.get aliens ((Array.length aliens) - 1) with 
-                           | Some (index, (row, column)) ->
-                             if (column = ((LTerm_draw.size ctx).cols - 2))
-                             then
-                               (direction := 1;
-                                go_down := !go_down +1);
-                           | None -> ())
-            | None -> ()
+              else (match Array.get aliens ((Array.length aliens) - 1) with
+                    | {index = index; spot = (row, column)} -> 
+                       if (column = ((LTerm_draw.size ctx).cols - 2))
+                       then
+                         (direction := 1;
+                          go_down := !go_down +1);
+                   )
           end;
 
           (* Rockets drawing *)
@@ -178,22 +179,21 @@ class game_frame exit_ show_help show_endgame =
                                             col1 = roc.col;
                                             row2 = roc.row;
                                             col2 = roc.col + 1} in
-              (* Regular exception handling doesn't work cause
-                         it needs to be something like try_lwt *)
               if roc.row > 1 then
                 begin
                   (* Array.iter (fun (Some (index, (row, column))) -> *)
                   Array.iter (fun r ->
-                      match r with
-                      | Some (index, (row, column)) -> 
-                        if (roc.row = row) &&
-                           (roc.col = column)
-                        then
-                          begin 
-                            Array.set aliens index None;
-                            hits := !hits + 1
-                          end
-                      | None -> ()
+                              match r with
+                              | {index = index; spot = (row, column); drawing_char = d} as p -> 
+                                 (* | Some (index, (row, column)) ->  *)
+                                 if (roc.row = row) &&
+                                    (roc.col = column) &&
+                                    not (eq d (of_char ' '))
+                                 then
+                                   begin 
+                                     Array.set aliens index {p with drawing_char = (of_char ' ' )};
+                                     hits := !hits + 1
+                                   end
                     )
                     aliens;
                   LTerm_draw.draw_styled ctx 0 0 ~style:rocket_style
