@@ -96,16 +96,15 @@ class game_frame exit_ show_help show_endgame =
         end
       else
         if (fst (Array.get aliens 51).spot) = 12
-        then current_event |> (function
-            | Some e ->
-              Lwt_engine.stop_event e;
-              self#show_endgame_modal ()
-            | None -> ());
+        then (match current_event with 
+             | Some e ->
+                Lwt_engine.stop_event e;
+                self#show_endgame_modal ()
+             | None -> ());
       
         begin
           (* Drawing the lambda defender *)
-          previous_location |>
-          (function
+          (match previous_location with 
             | Some c ->
                 let ctx = LTerm_draw.sub ctx {row1 = c.row - 1;
                                               col1 = c.col;
@@ -155,11 +154,8 @@ class game_frame exit_ show_help show_endgame =
             direction := 0;
           
           begin
-            (* This is broken as it stands, need to check the whole
-               column rather than element *)
             match Array.get aliens 0 with
             | {index = index; spot = (row, column)} -> 
-            (* | (Some (index, (row, column))) ->  *)
               if column = 1
               then
                 (direction := 2;
@@ -181,11 +177,9 @@ class game_frame exit_ show_help show_endgame =
                                             col2 = roc.col + 1} in
               if roc.row > 1 then
                 begin
-                  (* Array.iter (fun (Some (index, (row, column))) -> *)
                   Array.iter (fun r ->
                               match r with
                               | {index = index; spot = (row, column); drawing_char = d} as p -> 
-                                 (* | Some (index, (row, column)) ->  *)
                                  if (roc.row = row) &&
                                     (roc.col = column) &&
                                     not (eq d (of_char ' '))
@@ -211,29 +205,24 @@ class game_frame exit_ show_help show_endgame =
       show_endgame ()
 
     method move_left =
-      previous_location |>
-      (function
-        | Some p ->
-          if p.col > 2 then
-          previous_location <- Some {p with col = p.col - 2}
-        | None -> ()
-      )
+      match previous_location with 
+      | Some p ->
+         if p.col > 2 then
+           previous_location <- Some {p with col = p.col - 2}
+      | None -> ()
 
     method move_right =
-      previous_location |>
-      (function
+      match previous_location with 
         | Some p ->
           if p.col < !max_cols - 3 then
           previous_location <- Some {p with col = p.col + 2}
         | None -> ()
-      )
 
     method fire_rocket =
-      previous_location |>
-      (function
+      match previous_location with 
         | Some p ->
           rockets <- Array.append [|(Array.length rockets, p)|] rockets
-        | None -> ());
+        | None -> ();
       self#queue_draw;
 
     initializer
