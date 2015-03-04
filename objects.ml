@@ -85,7 +85,7 @@ class game_frame exit_ show_help show_endgame =
               if (i mod 2 > 0) && (j mod 2 > 0)
               then
                 aliens <- Array.append [|Some (Array.length aliens, (i, j))|] aliens;
-                LTerm_draw.draw_string ctx i j "A"
+              LTerm_draw.draw_char ctx i j (of_int 128125)
             done
           done 
                 
@@ -122,8 +122,8 @@ class game_frame exit_ show_help show_endgame =
               Array.iter (fun a ->
                   match a with
                   | Some (index, (i, j)) ->
-                    Array.set aliens index (Some (index, ((i + 1), j)));
-                    LTerm_draw.draw_string ctx (i + 1) j "A"
+                     Array.set aliens index (Some (index, ((i + 1), j)));
+                     LTerm_draw.draw_char ctx 0 0 (of_int 128125)
                   | None -> ())
                 cp;
                go_down := !go_down mod 3;
@@ -133,7 +133,7 @@ class game_frame exit_ show_help show_endgame =
                   match a with
                   | Some (index, (i, j)) ->
                     Array.set aliens index (Some (index, (i, (j - 1))));
-                    LTerm_draw.draw_string ctx i (j - 1) "A"
+                    LTerm_draw.draw_char ctx i (j - 1) (of_int 128125) 
                   | None -> ())
                 cp;
             | 2 ->
@@ -141,7 +141,7 @@ class game_frame exit_ show_help show_endgame =
                   match a with
                   | Some (index, (i, j)) ->
                     Array.set aliens index (Some (index, (i, (j + 1))));
-                    LTerm_draw.draw_string ctx i (j + 1) "A"
+                    LTerm_draw.draw_char ctx i (j + 1) (of_int 128125) 
                   | None -> ())
                 cp;
             | _ -> ();
@@ -171,19 +171,6 @@ class game_frame exit_ show_help show_endgame =
                            | None -> ())
             | None -> ()
           end;
-
-          (*   | None -> () *)
-          (* end ; *)
-          (*   begin *)
-          (*     match Array.get aliens ((Array.length aliens) - 1) with *)
-          (*     | Some (index, (row, column)) -> *)
-          (*       if ((LTerm_draw.size ctx).cols - 2) = column *)
-          (*       then *)
-          (*         (direction := 1; *)
-          (*          go_down := !go_down +1) *)
-          (*     | None -> () *)
-          (*   end ; *)
-
 
           (* Rockets drawing *)
           Array.iter (fun (index, roc) ->
