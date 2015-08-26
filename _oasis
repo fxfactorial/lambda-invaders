@@ -1,0 +1,21 @@
+OASISFormat:  0.4
+OCamlVersion: >= 4.02.3
+Name:         lambda-invaders
+Version:      0.1
+Maintainers:  Edgar Aroutiounian
+Homepage:     http://hyegar.com
+Synopsis:     Aliens attack clonish game
+Authors:      Edgar Aroutiounian <edgar.factorial@gmail.com>
+License:      BSD-3-clause
+Plugins:      META (0.4), DevFiles (0.4)
+AlphaFeatures: ocamlbuild_more_args
+Description:
+  Terminal based Alien invaders style game 
+
+Executable maxminddb
+  Path:src
+  BuildTools:ocamlbuild
+  BuildDepends:lwt.syntax, lambda-term, camomile
+  install: true
+  MainIs:main.ml
+  CompiledObject: best

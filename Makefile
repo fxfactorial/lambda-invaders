@@ -1,29 +1,41 @@
-SYN_EXTEN := camlp4o
-PACKAGES := lambda-term lwt.syntax camomile 
-EXEC_NAME := lambda-invaders
-FILES := l_utils.ml objects.ml main.ml
+# OASIS_START
+# DO NOT EDIT (digest: a3c674b4239234cbbe53afe090018954)
 
-# for debugging, use this invocation
-# ocamldebug `ocamlfind query -recursive -i-format camomile` lambda-invaders
-.PHONY: install clean 
+SETUP = ocaml setup.ml
 
-all:$(FILES)
-	ocamlfind ocamlopt -syntax $(SYN_EXTEN) -package lambda-term \
-	-package lwt.syntax -package camomile -thread -linkpkg \
-	-o $(EXEC_NAME) $(FILES)
+build: setup.data
+	$(SETUP) -build $(BUILDFLAGS)
 
-debug:
-	ocamlfind ocamlc -g -safe-string -syntax camlp4o -package lambda-term \
-	-package lwt.syntax -package camomile \
-	-thread -linkpkg -o $(EXEC_NAME) $(FILES)
-	@./$(EXEC_NAME)
-	@cat log
-	@rm -f log
+doc: setup.data build
+	$(SETUP) -doc $(DOCFLAGS)
 
-install:
-	opam-installer lambda-invaders.install
+test: setup.data build
+	$(SETUP) -test $(TESTFLAGS)
+
+all:
+	$(SETUP) -all $(ALLFLAGS)
+
+install: setup.data
+	$(SETUP) -install $(INSTALLFLAGS)
+
+uninstall: setup.data
+	$(SETUP) -uninstall $(UNINSTALLFLAGS)
+
+reinstall: setup.data
+	$(SETUP) -reinstall $(REINSTALLFLAGS)
 
 clean:
-	@rm -f *.cmi *.cmo *.cmt *.cmx *.o log
-	@rm -rf _build
+	$(SETUP) -clean $(CLEANFLAGS)
 
+distclean:
+	$(SETUP) -distclean $(DISTCLEANFLAGS)
+
+setup.data:
+	$(SETUP) -configure $(CONFIGUREFLAGS)
+
+configure:
+	$(SETUP) -configure $(CONFIGUREFLAGS)
+
+.PHONY: build doc test all install uninstall reinstall clean distclean configure
+
+# OASIS_STOP
