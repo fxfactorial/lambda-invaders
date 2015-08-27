@@ -6,7 +6,7 @@ open L_utils
 
 type alien = {index:int;
               spot:(int * int);
-              drawing_char:(CamomileLibrary.UChar.t)}
+              drawing_char:CamomileLibrary.UChar.t}
 
 class game_frame exit_ show_help show_endgame =
   object(self)
@@ -17,7 +17,7 @@ class game_frame exit_ show_help show_endgame =
     val mutable rockets = [||]
     val mutable aliens = [||]
     val hits = ref 0
-    val go_down = ref 0 
+    val go_down = ref 0
     (* 0 is down, 1 is left, 2 is right *)
     val direction = ref 1
     val max_cols = ref 0
@@ -45,8 +45,8 @@ class game_frame exit_ show_help show_endgame =
 
     method draw ctx focused_widget =
       (* Calling super just for that frame wrapping, aka the |_| *)
-      (* Make sure that row1 is smaller than row2 
-         and that col1 is smaller than col2, it goes:       
+      (* Make sure that row1 is smaller than row2
+         and that col1 is smaller than col2, it goes:
                           row1
                       col1    col2
                           row2 *)
@@ -67,10 +67,10 @@ class game_frame exit_ show_help show_endgame =
           let this_size = LTerm_draw.size ctx in
           init <- true;
           max_cols := this_size.cols;
-          
+
           previous_location <- Some {row = this_size.rows - 1;
                                      col = (this_size.cols / 2)};
-          
+
           let ctx_ = LTerm_draw.sub ctx {row1 = this_size.rows - 2;
                                         col1 = (this_size.cols / 2);
                                         row2 = this_size.rows - 1;
@@ -91,20 +91,20 @@ class game_frame exit_ show_help show_endgame =
                                           drawing_char = (of_int 128125)}|] aliens;
               LTerm_draw.draw_char ctx i j (of_int 128125)
             done
-          done 
-                
+          done
+
         end
       else
         if (fst (Array.get aliens 51).spot) = 12
-        then (match current_event with 
+        then (match current_event with
              | Some e ->
                 Lwt_engine.stop_event e;
                 self#show_endgame_modal ()
              | None -> ());
-      
+
         begin
           (* Drawing the lambda defender *)
-          (match previous_location with 
+          (match previous_location with
             | Some c ->
                 let ctx = LTerm_draw.sub ctx {row1 = c.row - 1;
                                               col1 = c.col;
@@ -116,7 +116,7 @@ class game_frame exit_ show_help show_endgame =
                   (LTerm_text.of_string "λ")
             | None -> ());
 
-          begin 
+          begin
           (* Aliens drawing *)
             let cp = Array.copy aliens in
             match !direction with
@@ -124,7 +124,7 @@ class game_frame exit_ show_help show_endgame =
             | 0 ->
               Array.iter (fun a ->
                           match a with
-                          | {index = index; spot = (i, j); drawing_char = d} as p -> 
+                          | {index = index; spot = (i, j); drawing_char = d} as p ->
                              Array.set aliens index {p with spot = (i + 1, j)};
                              LTerm_draw.draw_char ctx 0 0 d)
                          cp;
